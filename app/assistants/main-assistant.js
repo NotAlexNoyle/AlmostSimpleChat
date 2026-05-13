@@ -397,7 +397,7 @@ MainAssistant.prototype.handleCommand = function(event) {
                 stageController.pushScene({ name: "version", disableSceneScroller: false });
                 break;
             case 'do-myAbout':
-                Mojo.Additions.ShowDialogBox(Mojo.Controller.appInfo.title + " - " + Mojo.Controller.appInfo.version, "SimpleChat client for webOS. Copyright 2022, Jon W. Distributed under an MIT License.<br>Source code available at: https://github.com/codepoet80/webos-simplechat");
+                Mojo.Additions.ShowDialogBox(Mojo.Controller.appInfo.title + " - " + Mojo.Controller.appInfo.version, "AlmostSimpleChat client for webOS. Fork by NotAlexNoyle. Based on SimpleChat, Copyright 2022, Jon W. Distributed under an MIT License.<br>Fork source: https://github.com/NotAlexNoyle/AlmostSimpleChat<br>Upstream source: https://github.com/codepoet80/webos-simplechat");
                 break;
             case 'do-ShareImage':
                 this.handleShareImage();
