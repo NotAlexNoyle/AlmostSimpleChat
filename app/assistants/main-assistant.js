@@ -767,6 +767,9 @@ MainAssistant.prototype.handleItemRendered = function(listWidget, itemModel, ite
         itemNode.innerHTML = this.parseShareSpaceLinks(itemNode.innerHTML);
         itemNode.innerHTML = this.parseImgurLinks(itemNode.innerHTML);
     }
+    if (appModel.AppSettingsCurrent["ShowEmojis"]) {
+        itemNode.innerHTML = this.renderTwimoji(itemNode.innerHTML);
+    }
     if (itemNode.innerHTML.indexOf("</span> </div>") != -1) {
         itemNode.innerHTML = itemModel.message;
         Mojo.Log.warn("**** EMPTY MESSAGE RENDERED! " + JSON.stringify(itemModel));
@@ -818,7 +821,7 @@ MainAssistant.prototype.checkForUpdates = function() {
         systemModel.GetInstalledApps(function(response) {
             if (response && response.apps) {
                 for (var a = 0; a < response.apps.length; a++) {
-                    if (response.apps[a].id == "com.jonandnic.simplechat") {
+                    if (response.apps[a].id == "com.notalexnoyle.simplechat") {
                         oldFound = true;
                     }
                 }
@@ -881,6 +884,58 @@ MainAssistant.prototype.unescapeEntities = function(str) {
         .replace(/\`(.*)\`/gim, '<code>$1</code>')
         .replace(/\[(.*?)\]\((.*?)\)/gim, "<a href='$2'>$1</a>")
     return str;
+}
+
+MainAssistant.prototype.renderTwimoji = function(html) {
+    if (!html) return html;
+    var parts = html.split(/(<[^>]+>)/g);
+    for (var i = 0; i < parts.length; i++) {
+        if (parts[i].indexOf("<") !== 0) {
+            parts[i] = this.replaceEmojis(parts[i]);
+        }
+    }
+    return parts.join("");
+}
+
+MainAssistant.prototype.replaceEmojis = function(text) {
+    if (!text) return text;
+    return text.replace(this.getEmojiRegex(), function(match) {
+        return this.buildTwimojiSpan(match);
+    }.bind(this));
+}
+
+MainAssistant.prototype.buildTwimojiSpan = function(emojiText) {
+    var codepoints = [];
+    for (var i = 0; i < emojiText.length; i++) {
+        var code = emojiText.charCodeAt(i);
+        if (code >= 0xD800 && code <= 0xDBFF && i + 1 < emojiText.length) {
+            var high = code;
+            var low = emojiText.charCodeAt(i + 1);
+            if (low >= 0xDC00 && low <= 0xDFFF) {
+                code = ((high - 0xD800) * 0x400) + (low - 0xDC00) + 0x10000;
+                i++;
+            }
+        }
+        codepoints.push(code.toString(16));
+    }
+    var className = "emoji" + codepoints.join("");
+    return "<span name=\"emoji\" class=\"emoji-outer emoji-sizer\"><span class=\"emoji-inner " + className + "\">" + emojiText + "</span></span>";
+}
+
+MainAssistant.prototype.getEmojiRegex = function() {
+    if (this.emojiRegex) {
+        return this.emojiRegex;
+    }
+    var basicEmoji = "[\\u203C\\u2049\\u2122\\u2139\\u2194-\\u2199\\u21A9-\\u21AA\\u231A-\\u231B\\u2328\\u23CF\\u23E9-\\u23F3\\u23F8-\\u23FA\\u24C2\\u25AA-\\u25FE\\u2600-\\u27BF\\u2934-\\u2935\\u2B05-\\u2B55\\u3030\\u303D\\u3297\\u3299]";
+    var surrogateEmoji = "[\\uD83C-\\uDBFF][\\uDC00-\\uDFFF]";
+    var emojiChar = "(?:" + basicEmoji + "|" + surrogateEmoji + ")";
+    var variation = "[\\uFE0E\\uFE0F]?";
+    var modifier = "(?:\\uD83C[\\uDFFB-\\uDFFF])?";
+    var zwj = "(?:\\u200D" + emojiChar + variation + modifier + ")*";
+    var keycap = "[#*0-9]\\uFE0F?\\u20E3";
+    var flag = "\\uD83C[\\uDDE6-\\uDDFF]\\uD83C[\\uDDE6-\\uDDFF]";
+    this.emojiRegex = new RegExp(flag + "|" + keycap + "|" + emojiChar + variation + modifier + zwj, "g");
+    return this.emojiRegex;
 }
 
 MainAssistant.prototype.replaceImageLinks = function(str) {
